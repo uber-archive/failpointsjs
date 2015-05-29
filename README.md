@@ -16,13 +16,13 @@ Your server:
 
 ```js
 var Failpoints = require('failpoints');
-var failpoints = Failpoints.createWithNamespace('my-service');
+var myServiceFailpoints = Failpoints.createWithNamespace('my-service');
 var libraryThatUsesFailpoints = require('library-name');
 var http = require('http');
 var request = require('request');
 
 var server = http.createServer(function onRequest(req, res) {
-    if (failpoints.shouldFail('all_requests')) {
+    if (myServiceFailpoints.shouldFail('all_requests')) {
         res.writeHead(500, {'Content-Type': 'application/json'});
         return res.end(JSON.stringify({error: 'Failing on purpose'}));
     }
