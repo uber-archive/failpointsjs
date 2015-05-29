@@ -1,0 +1,40 @@
+{
+  "name": "failpoints",
+  "version": "1.0.0",
+  "description": "A failpoints javascript library",
+  "keywords": [],
+  "repository": "git://github.com/uber/failpointsjs.git",
+  "main": "index",
+  "contributors": [
+    "Rob Skillington <r@uber.com>"
+  ],
+  "dependencies": {
+    "es6-map": "^0.1.1",
+    "lodash": "^3.9.2",
+    "robb": "^0.2.1",
+    "tryit": "^1.0.1",
+    "uuid": "^2.0.1"
+  },
+  "devDependencies": {
+    "istanbul": "^0.3.14",
+    "opn": "^1.0.2",
+    "tap-spec": "^3.0.0",
+    "tape": "^4.0.0",
+    "uber-licence": "^1.5.1",
+    "uber-standard": "^3.6.4"
+  },
+  "scripts": {
+    "test": "npm run lint && node test/index.js | tap-spec",
+    "just-test": "node test/index.js | tap-spec",
+    "add-licence": "uber-licence",
+    "check-licence": "uber-licence --dry",
+    "cover": "istanbul cover --print detail --report html test/index.js && istanbul check-coverage --branches=100",
+    "just-cover": "istanbul cover --print detail --report html test/index.js",
+    "lint": "uber-standard",
+    "view-cover": "opn coverage/index.html"
+  },
+  "pre-commit": [
+    "check-licence",
+    "cover"
+  ]
+}
