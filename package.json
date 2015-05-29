@@ -10,7 +10,6 @@
   ],
   "dependencies": {
     "es6-map": "^0.1.1",
-    "lodash": "^3.9.2",
     "robb": "^0.2.1",
     "tryit": "^1.0.1",
     "uuid": "^2.0.1"

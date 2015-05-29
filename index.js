@@ -27,7 +27,6 @@ module.exports = Failpoints;
 var Map = require('es6-map');
 /* eslint-enable */
 
-var _ = require('lodash');
 var Failpoint = require('./failpoint');
 var tryit = require('tryit');
 var UUID = require('uuid');
@@ -48,8 +47,6 @@ function Failpoints(options) {
     this.knownFailpoints = new Map();
     this.Math = options.Math || Math;
     this.Date = options.Date || Date;
-    this.logger = null;
-    this.stats = null;
 }
 
 Failpoints.CONST = CONST;
@@ -88,9 +85,10 @@ Failpoints.create = function createUntracked() {
 /**
  * Set a failpoint's state. Can either be a registered failpoint or not-yet-registered failpoint.
  *
+ * Will throw on bad options.
+ *
  * @param {String} name - Name of the failpoint to enable/disable
  * @param {Boolean|Object} options - If boolean then turn it completely on or off, otherwise set as options object
- * @returns {Boolean} - True if succesfully set state or false otherwise
  */
 Failpoints.prototype.set = function set(name, options) {
     /*
@@ -101,68 +99,33 @@ Failpoints.prototype.set = function set(name, options) {
      *  args {Object} Arguments to pass to failpoint selection method if provided at failpoint
      */
     var self = this;
-    var err;
-    var statName;
-    var msg;
 
     var failpoint = self.knownFailpoints.get(name);
     if (!failpoint) {
-        tryit(function tryCreateFailpoint() {
-            failpoint = new Failpoint({
-                name: name,
-                failpoints: self,
-                Math: self.Math,
-                Date: self.Date
-            });
-            self.knownFailpoints.set(name, failpoint);
-        }, function onDone(exc) {
-            err = exc;
-            statName = 'lazy_create_failpoint';
-            msg = 'Failed to lazily create failpoint';
-            self._maybeError(err, statName, msg, {name: name, options: options});
+        failpoint = new Failpoint({
+            name: name,
+            failpoints: self,
+            Math: self.Math,
+            Date: self.Date
         });
-        if (err) {
-            return false;
-        }
+        self.knownFailpoints.set(name, failpoint);
     }
 
-    tryit(function setFailpointState() {
-        failpoint.setState(options);
-    }, function onDone(exc) {
-        err = exc;
-    });
-
-    if (err) {
-        statName = 'set_state';
-        msg = 'Failed to set failpoint state';
-        self._error(err, statName, msg, {name: name, options: options});
-        return false;
-    }
-
-    return true;
+    failpoint.setState(options);
 };
 
+/**
+ * Set all known failpoints' state.
+ *
+ * Will throw on bad options.
+ *
+ * @param {Boolean|Object} options - If boolean then turn it completely on or off, otherwise set as options object
+ */
 Failpoints.prototype.setAll = function setAll(options) {
     var self = this;
-    var allSetSuccessfully = true;
-
     self.knownFailpoints.forEach(function eachFailpoint(failpoint, name) {
-        var err;
-        tryit(function setFailpointState() {
-            failpoint.setState(options);
-        }, function onDone(exc) {
-            err = exc;
-        });
-
-        if (err) {
-            var statName = 'set_state';
-            var msg = 'Failed to set failpoint state';
-            self._error(err, statName, msg, {name: name, options: options});
-            allSetSuccessfully = false;
-        }
+        failpoint.setState(options);
     });
-
-    return allSetSuccessfully;
 };
 
 Failpoints.prototype.get = function get(name) {
@@ -186,8 +149,7 @@ Failpoints.prototype.shouldFail = function shouldFail(name) {
 Failpoints.prototype.shouldFailConditionally = function shouldFailConditionally(name, shouldAllow) {
     var self = this;
     if (typeof shouldAllow !== 'function') {
-        self._logWarn('shouldFailConditionally does not have shouldAllow callback set');
-        return false;
+        throw new Error('shouldFailConditionally does not have shouldAllow callback set');
     }
     var failpoint = self.knownFailpoints.get(name);
     if (!failpoint) {
@@ -200,8 +162,7 @@ Failpoints.prototype.shouldFailConditionally = function shouldFailConditionally(
 Failpoints.prototype.inline = function inline(name, onShouldFail, onNormally) {
     var self = this;
     if (typeof onShouldFail !== 'function') {
-        self._logWarn('inline does not have onShouldFail callback set');
-        return false;
+        throw new Error('inline does not have onShouldFail callback set');
     }
     if (self.shouldFail(name)) {
         onShouldFail(self.getArgs(name));
@@ -217,8 +178,7 @@ Failpoints.prototype.inline = function inline(name, onShouldFail, onNormally) {
 Failpoints.prototype.inlineConditionally = function inlineConditionally(name, shouldAllow, onShouldFail, onNormally) {
     var self = this;
     if (typeof onShouldFail !== 'function') {
-        self._logWarn('inlineConditionally does not have onShouldFail callback set');
-        return false;
+        throw new Error('inlineConditionally does not have onShouldFail callback set');
     }
     if (self.shouldFailConditionally(name, shouldAllow)) {
         onShouldFail(self.getArgs(name));
@@ -234,7 +194,7 @@ Failpoints.prototype.inlineConditionally = function inlineConditionally(name, sh
 Failpoints.prototype.inlineSync = function inlineSync(name, onShouldFail) {
     var self = this;
     if (typeof onShouldFail !== 'function') {
-        return self._logWarn('inlineSync does not have onShouldFail callback set');
+        return new Error('inlineSync does not have onShouldFail callback set');
     }
     if (self.shouldFail(name)) {
         onShouldFail(self.getArgs(name));
@@ -247,7 +207,7 @@ Failpoints.prototype.inlineSync = function inlineSync(name, onShouldFail) {
 Failpoints.prototype.inlineSyncConditionally = function inlineSyncConditionally(name, shouldAllow, onShouldFail) {
     var self = this;
     if (typeof onShouldFail !== 'function') {
-        return self._logWarn('inlineSyncConditionally does not have onShouldFail callback set');
+        throw new Error('inlineSyncConditionally does not have onShouldFail callback set');
     }
     if (self.shouldFailConditionally(name, shouldAllow)) {
         onShouldFail(self.getArgs(name));
@@ -264,32 +224,4 @@ Failpoints.prototype.getArgs = function getArgs(name) {
         return undefined;
     }
     return failpoint.args || CONST.NO_ARGS;
-};
-
-Failpoints.prototype._maybeError = function maybeError(err, statName, msg, meta) {
-    var self = this;
-    if (err) {
-        self._error(err, statName, msg, meta);
-    }
-};
-
-Failpoints.prototype._error = function error(err, statName, msg, meta) {
-    var self = this;
-    if (self.logger && typeof self.logger.error === 'function') {
-        var metaWithError = {error: err};
-        if (meta) {
-            _.extend(metaWithError, meta);
-        }
-        self.logger.error(msg, metaWithError);
-    }
-    if (self.stats && typeof self.stats.increment === 'function') {
-        self.stats.increment('failpoints_error_' + statName);
-    }
-};
-
-Failpoints.prototype._logWarn = function log(msg, meta) {
-    var self = this;
-    if (self.logger && typeof self.logger.warn === 'function') {
-        self.logger.warn(msg, meta);
-    }
 };
