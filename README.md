@@ -10,7 +10,8 @@ Failpoints becomes useful when there are many libraries and components that comp
 
 ## Example
 
-Dynamically set failpoints in your request handlers and also toggle on embedded 
+Dynamically set failpoints in your request handlers and also toggle on embedded library failpoints.
+
 Your server:
 
 ```js
@@ -85,7 +86,7 @@ setInterval(function pollForFailpoints() {
 
 ## Usage
 
-### Basic usage
+### Basic
 
 ```js
 var failpoints = require('failpoints').create();
