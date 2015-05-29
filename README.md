@@ -1,10 +1,92 @@
 # failpoints
 
-Add custom probabilistic failure points to your code and control when they execute.
+Add custom probabilistic and conditional failure points to your code and control when they execute.
 
 Why? Because sometimes you want to be ready for when things get funky.
 
-### Basic example
+## Motivation
+
+Failpoints becomes useful when there are many libraries and components that compose a piece of software and you want to namespace each one and toggle them on remotely.
+
+## Example
+
+Dynamically set failpoints in your request handlers and also toggle on embedded library failpoints.
+
+Your server:
+
+```js
+var Failpoints = require('failpoints');
+var myServiceFailpoints = Failpoints.createWithNamespace('my-service');
+var libraryThatUsesFailpoints = require('library-name');
+var http = require('http');
+var request = require('request');
+
+var server = http.createServer(function onRequest(req, res) {
+    if (myServiceFailpoints.shouldFail('all_requests')) {
+        res.writeHead(500, {'Content-Type': 'application/json'});
+        return res.end(JSON.stringify({error: 'Failing on purpose'}));
+    }
+
+    libraryThatUsesFailpoints.doWork(req, function onWorkDone(err, result) {
+        res.writeHead(200, {'Content-Type': 'application/json'});
+        res.end(JSON.stringify(result));
+    });
+});
+server.listen(8080);
+
+// Dynamically update failpoints by asking for installed failpoints for this service
+var since = 0;
+setInterval(function pollForFailpoints() {
+    request({
+        uri: 'http://cfgsrv/failpoints?service=my-service&since=' + since,
+        json: true
+    }, onResponse(err, res, body) {
+        if (err) {
+            return console.error('Error: ' + err);
+        }
+
+        // Example response that fails all requests 20% of 
+        // the time and the library work 50% of the time:
+        // {
+        //   "since": 1432928157,
+        //   "set": {
+        //     "my-service": [
+        //       {
+        //         "name": "all_requests",
+        //         "options": {
+        //           "probability": 0.2,
+        //           "maxDurationMs": 1000
+        //         }
+        //       }
+        //     ],
+        //     "library-name": [
+        //       {
+        //         "name": "all_work",
+        //         "options": {
+        //           "probability": 0.5,
+        //           "maxDurationMs": 1000
+        //         }
+        //       }
+        //     ]
+        //   }
+        // }
+
+        since = body.now;
+
+        Object.keys(body.set).forEach(function eachNamespace(namespace) {
+            var failpoints = Failpoints.getOrCreateFailpointsWithNamespace(namespace);
+            var array = body.set[namespace];
+            array.forEach(function eachFailpointToSet(failpoint) {
+                failpoints.set(failpoint.name, failpoint.options);
+            });
+        });
+    });
+}, 60000);
+```
+
+## Usage
+
+### Basic
 
 ```js
 var failpoints = require('failpoints').create();
