@@ -28,6 +28,8 @@ var Map = require('es6-map');
 /* eslint-enable */
 
 var Failpoint = require('./failpoint');
+var Individual = require('individual');
+var OneVersionConstraint = require('individual/one-version');
 var tryit = require('tryit');
 var UUID = require('uuid');
 
@@ -51,7 +53,7 @@ function Failpoints(options) {
 
 Failpoints.CONST = CONST;
 
-Failpoints.failpointsByNamespace = new Map();
+Failpoints.failpointsByNamespace = Individual('__FAILPOINTS_BY_NAMESPACE', new Map());
 
 Failpoints.getOrCreateFailpointsWithNamespace = function getOrCreateFailpointsWithNamespace(namespace) {
     var byNamespace = Failpoints.failpointsByNamespace;
