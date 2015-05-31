@@ -25,7 +25,7 @@ var createFailpoints = require('../').create;
 var mockDateTypeWithFixedDateNow = require('./test_utils').mockDateTypeWithFixedDateNow;
 var test = require('tape');
 
-test('Test failpoint setTime, triggerCount and lastTriggered all records correctly', function t(assert) {
+test('failpoint setTime, triggerCount and lastTriggered all records correctly', function t(assert) {
     var myFailpointCallCount = 0;
 
     var failpoints = createFailpoints();

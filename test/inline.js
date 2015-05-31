@@ -25,7 +25,7 @@ var createFailpoints = require('../').create;
 var mockDateTypeWithFixedDateNow = require('./test_utils').mockDateTypeWithFixedDateNow;
 var test = require('tape');
 
-test('Test inline failpoint can fail', function t(assert) {
+test('inline failpoint can fail', function t(assert) {
     var myFailpointCallCount = 0;
 
     var failpoints = createFailpoints();
@@ -53,7 +53,7 @@ test('Test inline failpoint can fail', function t(assert) {
     }
 });
 
-test('Test inlineConditionally failpoint can fail', function t(assert) {
+test('inlineConditionally failpoint can fail', function t(assert) {
     var myFailpointCallCount = 0;
     var avoidedMyFailpointCallCount = 0;
 

@@ -20,5 +20,7 @@
 
 'use strict';
 
+require('./failpoint');
+require('./failpoints');
 require('./inline');
 require('./stats');
