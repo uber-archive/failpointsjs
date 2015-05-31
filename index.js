@@ -131,6 +131,15 @@ Failpoints.prototype.get = function get(name) {
     return undefined;
 };
 
+Failpoints.prototype.getArgs = function getArgs(name) {
+    var self = this;
+    var failpoint = self.knownFailpoints.get(name);
+    if (!failpoint) {
+        return undefined;
+    }
+    return failpoint.args || CONST.NO_ARGS;
+};
+
 Failpoints.prototype.shouldFail = function shouldFail(name) {
     var self = this;
     var failpoint = self.knownFailpoints.get(name);
@@ -188,7 +197,7 @@ Failpoints.prototype.inlineConditionally = function inlineConditionally(name, sh
 Failpoints.prototype.inlineSync = function inlineSync(name, onShouldFail) {
     var self = this;
     if (typeof onShouldFail !== 'function') {
-        return new Error('inlineSync does not have onShouldFail callback set');
+        throw new Error('inlineSync does not have onShouldFail callback set');
     }
     if (self.shouldFail(name)) {
         onShouldFail(self.getArgs(name));
@@ -209,13 +218,4 @@ Failpoints.prototype.inlineSyncConditionally = function inlineSyncConditionally(
     } else {
         return false;
     }
-};
-
-Failpoints.prototype.getArgs = function getArgs(name) {
-    var self = this;
-    var failpoint = self.knownFailpoints.get(name);
-    if (!failpoint) {
-        return undefined;
-    }
-    return failpoint.args || CONST.NO_ARGS;
 };

@@ -94,8 +94,8 @@ Failpoint.prototype.setState = function setState(options) {
 
     if (options.args !== null &&
         options.args !== undefined &&
-        typeof options.args !== 'object' &&
-        Object.keys(options.args).length < 1) {
+        (typeof options.args !== 'object' ||
+        !Array.isArray(Object.keys(options.args)))) {
         throw new Error('`options.args` not an object with at least 1 key');
     }
 
@@ -141,11 +141,6 @@ Failpoint.prototype.shouldFail = function shouldFail() {
 
     self.triggerCount++;
     self.lastTriggered = self.Date.now();
-
-    var stats = self.failpoints.stats;
-    if (stats && typeof stats.increment === 'function') {
-        stats.increment('failpoints_did_fail.' + self.name);
-    }
 
     return true;
 };
