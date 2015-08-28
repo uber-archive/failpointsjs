@@ -16,10 +16,11 @@ Your server:
 
 ```js
 var Failpoints = require('failpoints');
-var myServiceFailpoints = Failpoints.createWithNamespace('my-service');
 var libraryThatUsesFailpoints = require('library-name');
 var http = require('http');
 var request = require('request');
+
+var myServiceFailpoints = Failpoints.createWithNamespace('my-service');
 
 var server = http.createServer(function onRequest(req, res) {
     if (myServiceFailpoints.shouldFail('all_requests')) {
@@ -37,10 +38,11 @@ server.listen(8080);
 // Dynamically update failpoints by asking for installed failpoints for this service
 var since = 0;
 setInterval(function pollForFailpoints() {
-    request({
+    var options = {
         uri: 'http://cfgsrv/failpoints?service=my-service&since=' + since,
         json: true
-    }, onResponse(err, res, body) {
+    };
+    request(options, function onResponse(err, res, body) {
         if (err) {
             return console.error('Error: ' + err);
         }
