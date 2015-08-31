@@ -129,7 +129,10 @@ test('Failpoints.shouldFailConditionally returns false on failpoint that has tru
     failpoints.set('my_failpoint', {probability: 1.0, maxCount: 1});
     failpoints.shouldFailConditionally('my_failpoint', shouldAllow);
     failpoints.shouldFailConditionally('my_failpoint', shouldAllow);
+
+    assert.equal(failpoints.get('my_failpoint').hitMaxLimits, true);
     assert.equal(failpoints.shouldFailConditionally('my_failpoint', shouldAllow), false);
+
     assert.end();
 
     function shouldAllow() {

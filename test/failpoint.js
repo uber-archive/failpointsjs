@@ -94,6 +94,7 @@ test('Failpoint.shouldFail returns false through hitMaxLimits fast path if excee
     failpoint.setState({probability: 1.0, maxCount: 1});
     assert.equal(failpoint.shouldFail(), true);
     assert.equal(failpoint.shouldFail(), false);
+    assert.equal(failpoint.hitMaxLimits, true);
     assert.equal(failpoint.shouldFail(), false);
     assert.end();
 });
