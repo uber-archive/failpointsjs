@@ -29,7 +29,6 @@ var Map = require('es6-map');
 
 var Failpoint = require('./failpoint');
 var Individual = require('individual');
-var tryit = require('tryit');
 var UUID = require('uuid');
 
 var CONST = {};
@@ -159,7 +158,9 @@ Failpoints.prototype.shouldFailConditionally = function shouldFailConditionally(
         return false;
     }
     var args = failpoint.args || CONST.NO_ARGS;
-    return shouldAllow(args) && failpoint.shouldFail();
+    // Explicitly check hitMaxLimits first to avoid
+    // potentially expensive shouldAllow function call
+    return !failpoint.hitMaxLimits && shouldAllow(args) && failpoint.shouldFail();
 };
 
 Failpoints.prototype.inline = function inline(name, onShouldFail, onNormally) {
