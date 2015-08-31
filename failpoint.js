@@ -43,6 +43,7 @@ function Failpoint(options) {
     this.setTime = null;
     this.triggerCount = null;
     this.lastTriggered = null;
+    this.hitMaxLimits = false;
 }
 
 Failpoint.prototype.toJSON = function toJSON() {
@@ -108,6 +109,7 @@ Failpoint.prototype.setState = function setState(options) {
 
 Failpoint.prototype._resetStatsVars = function resetStatsVars() {
     var self = this;
+    self.hitMaxLimits = false;
     if (self.probability > 0.0) {
         self.setTime = self.Date.now();
         self.triggerCount = 0;
@@ -122,11 +124,20 @@ Failpoint.prototype._resetStatsVars = function resetStatsVars() {
 Failpoint.prototype.shouldFail = function shouldFail() {
     var self = this;
 
+    if (self.hitMaxLimits) {
+        // Fast path for avoiding counts & times
+        return false;
+    }
+
     if (self.maxCount !== null && self.triggerCount >= self.maxCount) {
+        // Cache hitting the max count limit
+        self.hitMaxLimits = true;
         return false;
     }
 
     if (self.maxDurationMs !== null && (self.Date.now() - self.setTime) > self.maxDurationMs) {
+        // Cache hitting the max duration limit
+        self.hitMaxLimits = true;
         return false;
     }
 

@@ -124,6 +124,19 @@ test('Failpoints.shouldFailConditionally returns false on unknown failpoint', fu
     }
 });
 
+test('Failpoints.shouldFailConditionally returns false on failpoint that has truthy hitMaxLimits', function t(assert) {
+    var failpoints = new Failpoints({namespace: 'test'});
+    failpoints.set('my_failpoint', {probability: 1.0, maxCount: 1});
+    failpoints.shouldFailConditionally('my_failpoint', shouldAllow);
+    failpoints.shouldFailConditionally('my_failpoint', shouldAllow);
+    assert.equal(failpoints.shouldFailConditionally('my_failpoint', shouldAllow), false);
+    assert.end();
+
+    function shouldAllow() {
+        return true;
+    }
+});
+
 test('Failpoints.inline calls onNormally when set', function t(assert) {
     var onNormallyCallCount = 0;
     var failpoints = new Failpoints({namespace: 'test'});

@@ -89,3 +89,11 @@ test('Failpoint.shouldFail returns false if exceeds maxDurationMs', function t(a
     assert.end();
 });
 
+test('Failpoint.shouldFail returns false through hitMaxLimits fast path if exceeded maxCount', function t(assert) {
+    var failpoint = new Failpoint({name: 'test'});
+    failpoint.setState({probability: 1.0, maxCount: 1});
+    assert.equal(failpoint.shouldFail(), true);
+    assert.equal(failpoint.shouldFail(), false);
+    assert.equal(failpoint.shouldFail(), false);
+    assert.end();
+});
