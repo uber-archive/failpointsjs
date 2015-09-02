@@ -27,8 +27,10 @@ module.exports = Failpoints;
 var Map = require('es6-map');
 /* eslint-enable */
 
+var EventEmitter = require('events').EventEmitter;
 var Failpoint = require('./failpoint');
 var Individual = require('individual');
+var util = require('util');
 var UUID = require('uuid');
 
 var CONST = {};
@@ -44,10 +46,12 @@ function Failpoints(options) {
     }
 
     this.namespace = options.namespace;
-    this.knownFailpoints = new Map();
+    this.activeFailpoints = new Map();
     this.Math = options.Math || Math;
     this.Date = options.Date || Date;
 }
+
+util.inherits(Failpoints, EventEmitter);
 
 Failpoints.CONST = CONST;
 
@@ -93,7 +97,7 @@ Failpoints.prototype.set = function set(name, options) {
      */
     var self = this;
 
-    var failpoint = self.knownFailpoints.get(name);
+    var failpoint = self.activeFailpoints.get(name);
     if (!failpoint) {
         failpoint = new Failpoint({
             name: name,
@@ -101,7 +105,23 @@ Failpoints.prototype.set = function set(name, options) {
             Math: self.Math,
             Date: self.Date
         });
-        self.knownFailpoints.set(name, failpoint);
+        failpoint.once('inactive', function onInactive() {
+            // This failpoint has reached limit or set inactive, removing to increase performance
+            var sizeBeforeDeletion = self.activeFailpoints.size;
+            self.activeFailpoints.delete(name);
+            var sizeAfterDeletion = self.activeFailpoints.size;
+            self.emit('activeCount', sizeAfterDeletion);
+
+            if (sizeAfterDeletion === 0 && sizeBeforeDeletion > 0) {
+                self.emit('becameInactive');
+            }
+        });
+        var sizeBeforeInsertion = self.activeFailpoints.size;
+        self.activeFailpoints.set(name, failpoint);
+        self.emit('activeCount', self.activeFailpoints.size);
+        if (sizeBeforeInsertion === 0) {
+            self.emit('becameActive');
+        }
     }
 
     failpoint.setState(options);
@@ -116,14 +136,14 @@ Failpoints.prototype.set = function set(name, options) {
  */
 Failpoints.prototype.setAll = function setAll(options) {
     var self = this;
-    self.knownFailpoints.forEach(function eachFailpoint(failpoint, name) {
+    self.activeFailpoints.forEach(function eachFailpoint(failpoint, name) {
         failpoint.setState(options);
     });
 };
 
 Failpoints.prototype.get = function get(name) {
     var self = this;
-    var failpoint = self.knownFailpoints.get(name);
+    var failpoint = self.activeFailpoints.get(name);
     if (failpoint) {
         return failpoint.toJSON();
     }
@@ -132,7 +152,7 @@ Failpoints.prototype.get = function get(name) {
 
 Failpoints.prototype.getArgs = function getArgs(name) {
     var self = this;
-    var failpoint = self.knownFailpoints.get(name);
+    var failpoint = self.activeFailpoints.get(name);
     if (!failpoint) {
         return undefined;
     }
@@ -141,7 +161,7 @@ Failpoints.prototype.getArgs = function getArgs(name) {
 
 Failpoints.prototype.shouldFail = function shouldFail(name) {
     var self = this;
-    var failpoint = self.knownFailpoints.get(name);
+    var failpoint = self.activeFailpoints.get(name);
     if (!failpoint) {
         return false;
     }
@@ -153,7 +173,7 @@ Failpoints.prototype.shouldFailConditionally = function shouldFailConditionally(
     if (typeof shouldAllow !== 'function') {
         throw new Error('shouldFailConditionally does not have shouldAllow callback set');
     }
-    var failpoint = self.knownFailpoints.get(name);
+    var failpoint = self.activeFailpoints.get(name);
     if (!failpoint) {
         return false;
     }

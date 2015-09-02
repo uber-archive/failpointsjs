@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 'use strict';
-/* eslint max-len: 0 */
+/* eslint max-len: 0, max-statements: 0 */
 
 var Failpoints = require('../');
 var mockDateTypeWithFixedDateNow = require('./test_utils').mockDateTypeWithFixedDateNow;
@@ -46,6 +46,43 @@ test('Failpoints.getOrCreateFailpointsWithNamespace can get created namespace', 
     var retrieved = Failpoints.getOrCreateFailpointsWithNamespace('created' + uuid);
     assert.equal(retrieved, created);
     assert.end();
+});
+
+test('Failpoints emits activeCount when adding an active failpoint and when it becomes inactive', function t(assert) {
+    var activeCountCalls = [];
+    var becameActiveCallCount = 0;
+    var becameInactiveCallCount = 0;
+    var failpoints = new Failpoints({namespace: 'test'});
+    failpoints.on('activeCount', onActiveCount);
+    failpoints.on('becameActive', onBecameActive);
+    failpoints.on('becameInactive', onBecameInactive);
+
+    failpoints.set('my_failpoint', {probability: 1.0, maxCount: 1});
+    assert.equal(becameActiveCallCount, 1);
+
+    failpoints.set('my_second_failpoint', {probability: 1.0, maxCount: 1});
+
+    failpoints.shouldFail('my_failpoint');
+    failpoints.shouldFail('my_failpoint');
+    failpoints.shouldFail('my_second_failpoint');
+    failpoints.shouldFail('my_second_failpoint');
+    assert.equal(becameInactiveCallCount, 1);
+
+    assert.deepEqual(activeCountCalls, [1, 2, 1, 0]);
+
+    assert.end();
+
+    function onActiveCount(count) {
+        activeCountCalls.push(count);
+    }
+
+    function onBecameActive() {
+        becameActiveCallCount++;
+    }
+
+    function onBecameInactive() {
+        becameInactiveCallCount++;
+    }
 });
 
 test('Failpoints.get can get failpoint as JSON', function t(assert) {
@@ -117,22 +154,6 @@ test('Failpoints.shouldFailConditionally throws on shouldAllow not set', functio
 test('Failpoints.shouldFailConditionally returns false on unknown failpoint', function t(assert) {
     var failpoints = new Failpoints({namespace: 'test'});
     assert.equal(failpoints.shouldFailConditionally('my_failpoint', shouldAllow), false);
-    assert.end();
-
-    function shouldAllow() {
-        return true;
-    }
-});
-
-test('Failpoints.shouldFailConditionally returns false on failpoint that has truthy hitMaxLimits', function t(assert) {
-    var failpoints = new Failpoints({namespace: 'test'});
-    failpoints.set('my_failpoint', {probability: 1.0, maxCount: 1});
-    failpoints.shouldFailConditionally('my_failpoint', shouldAllow);
-    failpoints.shouldFailConditionally('my_failpoint', shouldAllow);
-
-    assert.equal(failpoints.get('my_failpoint').hitMaxLimits, true);
-    assert.equal(failpoints.shouldFailConditionally('my_failpoint', shouldAllow), false);
-
     assert.end();
 
     function shouldAllow() {

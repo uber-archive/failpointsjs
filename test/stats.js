@@ -55,16 +55,7 @@ test('failpoint setTime, triggerCount and lastTriggered all records correctly', 
 
     assert.equal(myFailpointCallCount, 2);
 
-    assert.deepEqual(failpoints.get('my_failpoint'), {
-        name: 'my_failpoint',
-        probability: 0.0,
-        maxCount: null,
-        maxDurationMs: null,
-        args: null,
-        setTime: null,
-        triggerCount: null,
-        lastTriggered: null
-    });
+    assert.equal(failpoints.get('my_failpoint'), undefined);
 
     assert.end();
 
