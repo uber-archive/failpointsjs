@@ -63,6 +63,30 @@ test('Failpoint.setState throws on bad args', function t(assert) {
     assert.end();
 });
 
+test('Failpoint.shouldFail returns true if random() <= probability', function t(assert) {
+    function MockMath() { }
+    MockMath.random = function mockMathRandom() {
+        return 0.2;
+    };
+
+    var failpoint = new Failpoint({name: 'test', Math: MockMath});
+    failpoint.setState({probability: 0.5});
+    assert.equal(failpoint.shouldFail(), true);
+    assert.end();
+});
+
+test('Failpoint.shouldFail returns false if random() > probability', function t(assert) {
+    function MockMath() { }
+    MockMath.random = function mockMathRandom() {
+        return 0.8;
+    };
+
+    var failpoint = new Failpoint({name: 'test', Math: MockMath});
+    failpoint.setState({probability: 0.5});
+    assert.equal(failpoint.shouldFail(), false);
+    assert.end();
+});
+
 test('Failpoint.shouldFail returns false if exceeds maxCount', function t(assert) {
     var failpoint = new Failpoint({name: 'test'});
     failpoint.setState({probability: 1.0, maxCount: 1});

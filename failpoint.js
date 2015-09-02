@@ -23,7 +23,9 @@
 
 module.exports = Failpoint;
 
+var EventEmitter = require('events').EventEmitter;
 var robb = require('robb/src/robb');
+var util = require('util');
 
 function Failpoint(options) {
     options = options || {};
@@ -45,6 +47,8 @@ function Failpoint(options) {
     this.lastTriggered = null;
     this.hitMaxLimits = false;
 }
+
+util.inherits(Failpoint, EventEmitter);
 
 Failpoint.prototype.toJSON = function toJSON() {
     var self = this;
@@ -111,10 +115,12 @@ Failpoint.prototype._resetStatsVars = function resetStatsVars() {
     var self = this;
     self.hitMaxLimits = false;
     if (self.probability > 0.0) {
+        self.emit('active', self);
         self.setTime = self.Date.now();
         self.triggerCount = 0;
         self.lastTriggered = null;
     } else {
+        self.emit('inactive', self);
         self.setTime = null;
         self.triggerCount = null;
         self.lastTriggered = null;
@@ -132,12 +138,14 @@ Failpoint.prototype.shouldFail = function shouldFail() {
     if (self.maxCount !== null && self.triggerCount >= self.maxCount) {
         // Cache hitting the max count limit
         self.hitMaxLimits = true;
+        self.emit('inactive', self);
         return false;
     }
 
     if (self.maxDurationMs !== null && (self.Date.now() - self.setTime) > self.maxDurationMs) {
         // Cache hitting the max duration limit
         self.hitMaxLimits = true;
+        self.emit('inactive', self);
         return false;
     }
 
